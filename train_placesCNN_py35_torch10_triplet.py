@@ -14,8 +14,10 @@ from collections import OrderedDict
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
+import numpy as np
 from PIL import ImageFile
 # ImageFile.LOAD_TRUNCATED_IMAGES = True
+import json
 
 import wideresnet
 # import inceptionv3
@@ -29,26 +31,27 @@ model_names = sorted(name for name in models.__dict__
                      and callable(models.__dict__[name]))
 
 # 存放数据的根目录
-DATA_PATH = '/home/meteo/zihao.chen/data'
+DATA_PATH = '/home/davidyang/triplet-loss-pytorch'
 
 # 数据集的目录，它内部应该满足pytorch Dataset的标准，形如 data/class1/*.jpg data/class2/*.jpg data/class3/*.jpg
-data_path = os.path.join(DATA_PATH, 'allergy/allergy_work')
+data_path = os.path.join(DATA_PATH, 'datasets/')
+
 
 # 最优迭代的索引，初始为0
 best_prec1 = 0
+# 模型的分类类别数量
+num_classes = 3
 
 # 一个特立独行的名字，用来区分每次训练的模型
-arch = 'resnet50_allergy_336_lr0001_triplet_base'
+arch = 'resnet50_'+str(num_classes)+'_allergy_336_lr0001_triplet_base'
 
 # 是否使用现有的模型,如果使用的话，注意你的dataloader是否能够正确的投喂数据
 # resume = 'resnet50_cloud_a29_best.pth.tar'
 resume = None
 
-# 模型的分类类别数量
-num_classes = 10
 
 # 每批次训练的样本量，也会影响dataloader的缓冲大小
-batch_size = 10
+batch_size = 5
 
 # dataloader 使用的线程数量，之所以没用进程的方式，是因为主要是大多数数据装载的时间主要集中在IO阻塞上，
 # 数据的预处理本身占用的时间其实很快。而且进程间通讯和调度没有线程那么方便。
@@ -69,7 +72,7 @@ print_freq = 10
 start_epoch = 0
 
 # 总数据集迭代次数
-epochs = 40
+epochs = 100
 
 
 def _cloud_crop(img):
@@ -128,7 +131,7 @@ def main():
     model = model.cuda()
     # model = nn.DataParallel(model, device_ids=[9])
     # model = torch.nn.DataParallel(model).cuda()
-    print (model)
+    print(model)
 
     # optionally resume from a checkpoint
     if resume:
@@ -146,8 +149,8 @@ def main():
     # cudnn.benchmark = True
 
     # Data loading code
-    traindir = os.path.join(data_path, 'train')
-    valdir = os.path.join(data_path, 'val')
+    traindir = os.path.join(data_path, '')
+    valdir = os.path.join(data_path, '')
     # normalize = transforms.Normalize(mean=[0.1680733,0.1680733,0.1680733],
     #                                  std=[0.15840427,0.15840427,0.15840427])
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -207,8 +210,14 @@ def main():
                                       transforms.ToTensor(),
                                       normalize,
                                   ]), shuffle=True)
+        if(epoch == 0):
+            text_file = open(arch+"_lables_map.txt", "w")
+            n = text_file.write(json.dumps(train_loader.lables_map))
+            text_file.close()
+            
         # train for one epoch
-        train(train_loader, model, criterion_tml, criterion_cel, optimizer, epoch)
+        train(train_loader, model, criterion_tml,
+              criterion_cel, optimizer, epoch)
 
         # evaluate on validation set
         prec1 = validate(val_loader, model, criterion_cel)
@@ -256,10 +265,11 @@ def train(train_loader, model, criterion1, criterion2, optimizer, epoch):
         # print (sample_target[:batch_size])
         # print (sample_target[batch_size:(batch_size * 2)])
         # print (sample_target[-batch_size:])
-        target = sample_target.cuda(async=True)
+        target = sample_target.cuda()
         input_var = torch.autograd.Variable(sample_input.cuda())
         target_var = torch.autograd.Variable(target.cuda())
         # compute output
+        
         output = model(input_var)
         anchor = output[:temp_batch_size]
         positive = output[temp_batch_size:(temp_batch_size * 2)]
@@ -292,8 +302,8 @@ def train(train_loader, model, criterion1, criterion2, optimizer, epoch):
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                   'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                epoch, i, train_loader_length // batch_size, batch_time=batch_time,
-                data_time=data_time, loss=losses, top1=top1, top5=top5))
+                      epoch, i, train_loader_length // batch_size, batch_time=batch_time,
+                      data_time=data_time, loss=losses, top1=top1, top5=top5))
 
 
 def validate(val_loader, model, criterion):
@@ -314,7 +324,7 @@ def validate(val_loader, model, criterion):
         # for index in range(len(t_l)):
         #     t_la = t_l[index]
         #     label_map[t_la]+=1
-        target = target.cuda(async=True)
+        target = target.cuda()
         input_var = torch.autograd.Variable(input.cuda())
         target_var = torch.autograd.Variable(target.cuda())
         with torch.no_grad():
@@ -339,8 +349,8 @@ def validate(val_loader, model, criterion):
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                   'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                i, len(val_loader), batch_time=batch_time, loss=losses,
-                top1=top1, top5=top5))
+                      i, len(val_loader), batch_time=batch_time, loss=losses,
+                      top1=top1, top5=top5))
 
     print(' * Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f}'
           .format(top1=top1, top5=top5))
@@ -350,10 +360,12 @@ def validate(val_loader, model, criterion):
 
 def save_checkpoint(state, is_best, epoch, filename='checkpoint.pth.tar'):
     if epoch != 0:
-        os.rename(filename + '_latest.pth.tar', filename + '_%d.pth.tar' % (epoch))
+        os.rename(filename + '_latest.pth.tar',
+                  filename + '_%d.pth.tar' % (epoch))
     torch.save(state, filename + '_latest.pth.tar')
     if is_best:
-        shutil.copyfile(filename + '_latest.pth.tar', filename + '_best.pth.tar')
+        shutil.copyfile(filename + '_latest.pth.tar',
+                        filename + '_best.pth.tar')
 
 
 class AverageMeter(object):
