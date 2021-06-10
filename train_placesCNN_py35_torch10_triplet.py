@@ -34,13 +34,13 @@ model_names = sorted(name for name in models.__dict__
 DATA_PATH = '/home/davidyang/triplet-loss-pytorch'
 
 # 数据集的目录，它内部应该满足pytorch Dataset的标准，形如 data/class1/*.jpg data/class2/*.jpg data/class3/*.jpg
-data_path = os.path.join(DATA_PATH, 'datasets/')
+data_path = os.path.join(DATA_PATH, 'datasets/0241/')
 
 
 # 最优迭代的索引，初始为0
 best_prec1 = 0
 # 模型的分类类别数量
-num_classes = 3
+num_classes = 100
 
 # 一个特立独行的名字，用来区分每次训练的模型
 arch = 'resnet50_'+str(num_classes)+'_allergy_336_lr0001_triplet_base'
@@ -66,13 +66,13 @@ momentum = 0.9
 weight_decay = 1e-4
 
 # 多少个batch打印一次结果
-print_freq = 10
+print_freq = 30
 
 # 迭代开始的索引
 start_epoch = 0
 
 # 总数据集迭代次数
-epochs = 100
+epochs = 140
 
 
 def _cloud_crop(img):
@@ -149,8 +149,8 @@ def main():
     # cudnn.benchmark = True
 
     # Data loading code
-    traindir = os.path.join(data_path, '')
-    valdir = os.path.join(data_path, '')
+    traindir = os.path.join(data_path, 'train')
+    valdir = os.path.join(data_path, 'test')
     # normalize = transforms.Normalize(mean=[0.1680733,0.1680733,0.1680733],
     #                                  std=[0.15840427,0.15840427,0.15840427])
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],

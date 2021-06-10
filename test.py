@@ -7,8 +7,16 @@ import wideresnet
 import torchvision.transforms as transforms
 import numpy as np
 from PIL import Image
+import torch.nn.functional as F
+import json
 
-num_classes = 3
+num_classes = 100
+
+text_file = open('resnet50_'+str(num_classes)+'_allergy_336_lr0001_triplet_base_lables_map.txt', "r")
+t = text_file.read()
+key = json.loads(t)
+key2= dict(zip(key.values(), key.keys()))
+
 model = wideresnet.resnet50(pretrained=True, num_classes=1000)
 state_dict = torch.load(
     'resnet50_'+str(num_classes)+'_allergy_336_lr0001_triplet_base_best.pth.tar')
@@ -34,10 +42,10 @@ transform1 = transforms.Compose([
 # )
 
 # numpy.ndarray
-# img = cv2.imread("datasets/cats/cat.1.jpg")
+img = Image.open("datasets/性感套裝/0-2470802.jpg")
 # img = Image.open("datasets/cats/cat.1.jpg")
-img = Image.open("datasets/giraffe/2.png")
-
+# img = Image.open("datasets/giraffe/2.png")
+# img = Image.open("datasets/test.jpg")
 # img = Image.open("datasets/dogs/dog.1.jpg")
 img1 = transform1(img)
 
@@ -49,4 +57,9 @@ output = model.classifier(output)
 topk=(1,1)
 maxk = max(topk)
 c, pred = output.topk(maxk, 1, True, True)
+torch.max(output, 1)
 pred = pred.t()
+
+b = F.normalize(output[0], p=2, dim=0)
+
+print(key2[int(pred[0][0])])
