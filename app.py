@@ -2,12 +2,14 @@ from flask import Flask, request
 import time
 import os
 from inference import Inference
+import torch
+
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
 # CORS(app)
 app.config.from_object(__name__)
 
-model = Inference()
+model = Inference(device = torch.device('cpu'))
 @app.route('/')
 def index():
     return "index"
@@ -23,6 +25,6 @@ def filesapi():
     fileName = str(time.time())+"_"+myfile.filename
     filepath =  "userfiles/"+fileName
     myfile.save(filepath)
-    model.inference(filepath)
+    arr,name = model.inference(filepath)
     os.remove(filepath)
-    return {'filename': fileName, 'msg': 'success'}, 200
+    return {'filename': fileName, 'msg': 'success','data':{"data":arr,"name":name}}, 200

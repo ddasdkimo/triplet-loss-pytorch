@@ -4,3 +4,5 @@ datasets/
 resnet50_100_allergy_336_lr0001_triplet_base_lables_map.txt
 __MACOSX/._tmp
 __MACOSX/tmp/._.DS_Store
+userfiles/*
+.DS_Store
