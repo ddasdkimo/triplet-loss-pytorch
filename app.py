@@ -10,6 +10,7 @@ app.config['JSON_AS_ASCII'] = False
 app.config.from_object(__name__)
 
 model = Inference(device = torch.device('cpu'))
+# model = Inference(device = torch.device('cuda'))
 @app.route('/')
 def index():
     return "index"

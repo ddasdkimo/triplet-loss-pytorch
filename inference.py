@@ -30,6 +30,7 @@ class Inference:
         model.fc = nn.Linear(2048, 256)
         model.classifier = nn.Linear(256, num_classes)
         model.load_state_dict(state_dict["state_dict"])
+        model.to(self.device)
         # print(model)
         model.eval()
 
@@ -48,7 +49,7 @@ class Inference:
         input_var = torch.autograd.Variable(img1.to(self.device))
         input_var = input_var[np.newaxis, :]
         input_var = input_var.to(self.device)
-        output = model(input_var.cpu())
+        output = model(input_var)
         output = model.classifier(output)
         topk = (1, 1)
         maxk = max(topk)
