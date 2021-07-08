@@ -63,4 +63,5 @@ class Inference:
         # normalized_v = blist/np.linalg.norm(blist)
 
         # print(key2[int(pred[0][0])])
+        routput[int(pred[0][0])] = routput[int(pred[0][0])] * 10
         return routput.tolist(),key2[int(pred[0][0])]
